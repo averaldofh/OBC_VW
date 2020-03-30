@@ -4,8 +4,8 @@ int minCal, maxCal;
 
 int getFuelQt(){
   
-  for(int i = 0 ; i < 50 ; i++)
+  for(int i = 0 ; i < 100 ; i++)
   { fuelqtt += analogRead(FuelSensorPin); }
-  fuelqtt = fuelqtt/50;
+  fuelqtt = fuelqtt/100;
   return fuelqtt;
 }
