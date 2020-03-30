@@ -13,6 +13,30 @@ unsigned int AmountOfReadings = 5;
 unsigned int ZeroDebouncingExtra;
 unsigned long PeriodSum;
 //
+
+
+void readPulses()  // The interrupt runs this to calculate the period between pulses:
+{
+  PeriodBetweenPulses = micros() - LastTimeWeMeasured;  // Current "micros" minus the old "micros" when the last pulse happens.
+  LastTimeWeMeasured = micros();  // Stores the current micros so the next time we have a pulse we would have something to compare with.
+  if(PulseCounter >= AmountOfReadings)  // If counter for amount of readings reach the set limit:
+  {
+    PeriodAverage = PeriodSum / AmountOfReadings;  // Calculate the final period dividing the sum of all readings by the
+    PulseCounter = 1;  // Reset the counter to start over. The reset value is 1 because its the minimum setting allowed (1 reading).
+    PeriodSum = PeriodBetweenPulses;  // Reset PeriodSum to start a new averaging operation.
+    int RemapedAmountOfReadings = map(PeriodBetweenPulses, 40000, 5000, 1, 10);  // Remap the period range to the reading range.
+    RemapedAmountOfReadings = constrain(RemapedAmountOfReadings, 1, 10);  // Constrain the value so it doesn't go below or above the limits.
+    AmountOfReadings = RemapedAmountOfReadings;  // Set amount of readings as the remaped value.
+  }
+  else
+  {
+    PulseCounter++;  // Increase the counter for amount of readings by 1.
+    PeriodSum = PeriodSum + PeriodBetweenPulses;  // Add the periods so later we can average.
+  }
+}  // End of Pulse_Event.
+
+
+
 int getRpm() 
 {
   LastTimeCycleMeasure = LastTimeWeMeasured;  // Store the LastTimeWeMeasured in a variable.
