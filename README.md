@@ -22,4 +22,4 @@ It's going to simply show the speed, odometer, 2 parcial odometers, oil temperat
 # this sketch for testing purposes, is runing ok on a ESP32 with built-in OLED screen. still under development.
 
 # Special Thanks
-**Thanks to youtube.com/user/interlinkknight for his awesome piece of code, regarding RPM counting.
+**Thanks to youtube.com/user/interlinkknight for his awesome piece of code, regarding RPM counting.**
