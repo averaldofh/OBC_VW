@@ -29,6 +29,7 @@ unsigned int trip2=0, fuelqty=0;          //variables to store trip and fuel qua
 unsigned int lastTrip1,lastTrip2;         //variables to set trip values
 char buf[32];                             //general use buffer
 bool mainDrawn;
+long timepass;
 RTC_DATA_ATTR bool firstRun=1;            //bool variable to set some things at first run
 RTC_DATA_ATTR int odoDS = 0;              //variable to store odometer in the deepsleep state
 RTC_DATA_ATTR int odocDS = 0;             //variable to store hundreds in the deepsleep state
@@ -51,7 +52,7 @@ void setup()
       lastTrip1 = t1DS;
       lastTrip2 = t2DS;
       EEPROM.writeInt(0,odo);
-      EEPROM.writeInt(5,odoc);
+      EEPROM.writeInt(5,odot);
       EEPROM.writeInt(9,lastTrip1);
       EEPROM.writeInt(13,lastTrip2);
       EEPROM.commit();
@@ -71,25 +72,12 @@ void setup()
    buttonConfig->setEventHandler(handleEvent);
    buttonConfig->setFeature(ButtonConfig::kFeatureClick);
    buttonConfig->setFeature(ButtonConfig::kFeatureLongPress);
- if(firstRun){
-  lastTrip1=trip1;
-  lastTrip2=trip2;
-  firstRun=0;
-  }
- delay(5000);
+ delay(2500);
 }//setup
 
 
 void loop() 
 { 
-  if(!digitalRead(ignPin))
-  {
-    odoDS = odo;
-    odocDS = odoc;
-    t1DS = lastTrip1;
-    t2DS = lastTrip2;
-    esp_deep_sleep_start();
-  }
   attachInterrupt(digitalPinToInterrupt(pin_sensor), readPulses, RISING);    //reattaches interrupt  
   
  //----------------- ODOMETER UPDATE -----------------------//
@@ -127,6 +115,15 @@ void loop()
    if(telaAtiva==1 || oilT>maxOilT || batStats < minBatVolt)                       //if in temp screen OR oilT gets above maximum
      { drawStats(oilT, batStats);}                                                 //draw temps screen
 
+  if(!digitalRead(ignPin))
+  {
+    odoDS = odo;
+    odocDS = odoc;
+    t1DS = lastTrip1;
+    t2DS = lastTrip2;
+    esp_deep_sleep_start();
+  }
+
 } //loop
 
 
@@ -136,7 +133,7 @@ void handleEvent(AceButton* /* button */, uint8_t eventType,
     uint8_t /* buttonState */) {
   switch (eventType) {
     case AceButton::kEventClicked:
-      if(telaAtiva==0 && modo<=1)modo++; else modo=0;
+      if(telaAtiva==0 && modo<=1)modo++;else modo=0;
       if(telaAtiva==1){telaAtiva=0;modo=0;}
       break;
     case AceButton::kEventLongPressed:
