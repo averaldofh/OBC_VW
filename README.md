@@ -1,17 +1,20 @@
 # OBC_VW
-an atempt to get an on-board computer in an '69 VW Beetle.
+**Author: averaldofh
 
-this sketch for testing purposes, is runing ok on a ESP32 with built-in OLED screen. 
-still under development.
+## What's this?
+It is just an atempt to get an on-board computer in an '69 VW Beetle.
 
-The speed will be calculated after the wheels RPM. 
+## What this thing do? (or should..)
+It's going to simply show the speed, odometer, 2 parcial odometers, oil temperature, battery voltage and fuel level.
 
-Wheels RPM will be measured by an Hall Effect Sensor and 4 magnets. Thanks to youtube.com/user/interlinkknight for this awesome
-piece of code.
+## How it works?
+**Speed:** There's a hall effect sensor attached to the wheel hub, as well as 4 magnets attached to the wheels. These will give us the RPM of the wheels, then we can get the speed of the car.
+**Odometer:** With speed and time we can sum our mileage very easily and store in non-volatile memory.
+**Oil Temperature:** Still figuring out how i will attach an NTC to monitor oil temperature.
+**Fuel level:** Just as simple as a potentiometer and a buoy.
+**Battery Level:** Simplest thing on the whole project.
 
-A thermistor will be used in the oil heat exchanger to measure the temperature.
+# this sketch for testing purposes, is runing ok on a ESP32 with built-in OLED screen. still under development.
 
-A new Fuel tank sensor will be used instead of the old one. Probably a potentiometer. 
-
-Still need to implement an eeprom to save the odometer. using the internal eeprom from esp32 gave me erros when used
-EEPROM.commit(); (aka reboots).
+# Special Thanks
+**Thanks to youtube.com/user/interlinkknight for his awesome piece of code, regarding RPM counting.
