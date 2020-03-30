@@ -1,24 +1,24 @@
 #define wheelDiameter 65          //unit: cm
 #define pin_sensor 19             //pin where the wheel sensor is attached
 #define sw_pin 13                 //pin where the control switch is attached
-#define FuelSensorPin 34
-#define TempSensorPin 35
-#define batSensorPin 36
-#define ignPin 39
+#define FuelSensorPin 34          //pin where the fuel level sensor is attached
+#define TempSensorPin 35          //pin where the NTC is attached
+#define batSensorPin 36           //pin where the battery voltage is attached
+#define ignPin 39                 //pin where the ignition voltage is attached
 #define maxOilT 145               //defines the max oil temperature
-#define minBatVolt 10
+#define minBatVolt 10             //define min battery voltage for alert purposes
 
 
 #include <AceButton.h>            //button library
 #include <U8g2lib.h>              //u8g2 Library
+#include "EEPROM.h"               //EEPROM library
 #include "Speedo.h"               //file which contains the rpm and speed functions (by interlinkknight)
 #include "screens.h"              //file which contains the drawing functions for the 128x64 screen
 #include "Fuel.h"                 //file which contains the fuel sensing function
 #include "Temps.h"                //file which contains the temp sensing function
-#include "EEPROM.h"
-#include "Battery.h"
+#include "Battery.h"              //file which contains the Battery voltage measuring function
+using namespace ace_button;       //button library
 
-using namespace ace_button;       
 float kmConv = wheelDiameter * 0.001885;  //determines the constant value for converting rpm to km/h
 int spd,modo=0,telaAtiva=0;               //variables: speed, screen mode, and active screen
 double odoT=0,odot;                       //variables to store odometers value
@@ -29,89 +29,69 @@ unsigned int trip2=0, fuelqty=0;          //variables to store trip and fuel qua
 unsigned int lastTrip1,lastTrip2;         //variables to set trip values
 char buf[32];                             //general use buffer
 bool mainDrawn;
-RTC_DATA_ATTR bool firstRun=1;                //bool variable to set some things at first run
-RTC_DATA_ATTR int odoDS = 0;
-RTC_DATA_ATTR int odocDS = 0;
-RTC_DATA_ATTR int t1DS = 0;
-RTC_DATA_ATTR int t2DS = 0;
+RTC_DATA_ATTR bool firstRun=1;            //bool variable to set some things at first run
+RTC_DATA_ATTR int odoDS = 0;              //variable to store odometer in the deepsleep state
+RTC_DATA_ATTR int odocDS = 0;             //variable to store hundreds in the deepsleep state
+RTC_DATA_ATTR int t1DS = 0;               //variable to store the trip1 in the deepsleep state
+RTC_DATA_ATTR int t2DS = 0;               //variable to store the trip2 in the deepsleep state
 
-AceButton modeSw(sw_pin);
-void handleEvent(AceButton*, uint8_t, uint8_t);
-
+AceButton modeSw(sw_pin);                           //button configuration
+void handleEvent(AceButton*, uint8_t, uint8_t);     //button configuration
 
 void setup() 
 { 
+  esp_sleep_enable_ext0_wakeup(GPIO_NUM_39, 1);
   u8g2.begin();
   draw_splash();
   EEPROM.begin(1000);
-  if(odoDS!=0)
-  {
-  odo = odoDS;
-  odot = odocDS;
-  lastTrip1 = t1DS;
-  lastTrip2 = t2DS;
-  EEPROM.writeInt(0,odo);
-  EEPROM.writeInt(5,odoc);
-  EEPROM.writeInt(9,lastTrip1);
-  EEPROM.writeInt(13,lastTrip2);
-  EEPROM.commit();
-  }else{
-    odo=EEPROM.readInt(0);
-    odoc=EEPROM.readInt(5);
-    lastTrip1=EEPROM.readInt(9);
-    lastTrip2=EEPROM.readInt(13);
-  }
+    if(odoDS!=0)
+      {
+      odo = odoDS;
+      odot = odocDS;
+      lastTrip1 = t1DS;
+      lastTrip2 = t2DS;
+      EEPROM.writeInt(0,odo);
+      EEPROM.writeInt(5,odoc);
+      EEPROM.writeInt(9,lastTrip1);
+      EEPROM.writeInt(13,lastTrip2);
+      EEPROM.commit();
+      }else{
+        odo=EEPROM.readInt(0);
+        odot=EEPROM.readInt(5);
+        lastTrip1=EEPROM.readInt(9);
+        lastTrip2=EEPROM.readInt(13);
+      }
   minCal = EEPROM.readInt(20);
   maxCal = EEPROM.readInt(25);
   odoT = odo+(odot/10);
-  esp_sleep_enable_ext0_wakeup(GPIO_NUM_39, 1);
   pinMode(sw_pin,INPUT_PULLUP);
   pinMode(pin_sensor,INPUT_PULLUP);
   modeSw.setEventHandler(handleEvent);
-  //attachInterrupt(digitalPinToInterrupt(pin_sensor), readPulses, RISING); //Counter restarted  
-  ButtonConfig* buttonConfig = modeSw.getButtonConfig();
-  buttonConfig->setEventHandler(handleEvent);
-  buttonConfig->setFeature(ButtonConfig::kFeatureClick);
-  buttonConfig->setFeature(ButtonConfig::kFeatureLongPress);
+   ButtonConfig* buttonConfig = modeSw.getButtonConfig();
+   buttonConfig->setEventHandler(handleEvent);
+   buttonConfig->setFeature(ButtonConfig::kFeatureClick);
+   buttonConfig->setFeature(ButtonConfig::kFeatureLongPress);
  if(firstRun){
- lastTrip1=trip1;
- lastTrip2=trip2;
- firstRun=0;
- }
+  lastTrip1=trip1;
+  lastTrip2=trip2;
+  firstRun=0;
+  }
  delay(5000);
 }//setup
 
-void readPulses()  // The interrupt runs this to calculate the period between pulses:
-{
-  PeriodBetweenPulses = micros() - LastTimeWeMeasured;  // Current "micros" minus the old "micros" when the last pulse happens.
-  LastTimeWeMeasured = micros();  // Stores the current micros so the next time we have a pulse we would have something to compare with.
-  if(PulseCounter >= AmountOfReadings)  // If counter for amount of readings reach the set limit:
-  {
-    PeriodAverage = PeriodSum / AmountOfReadings;  // Calculate the final period dividing the sum of all readings by the
-    PulseCounter = 1;  // Reset the counter to start over. The reset value is 1 because its the minimum setting allowed (1 reading).
-    PeriodSum = PeriodBetweenPulses;  // Reset PeriodSum to start a new averaging operation.
-    int RemapedAmountOfReadings = map(PeriodBetweenPulses, 40000, 5000, 1, 10);  // Remap the period range to the reading range.
-    RemapedAmountOfReadings = constrain(RemapedAmountOfReadings, 1, 10);  // Constrain the value so it doesn't go below or above the limits.
-    AmountOfReadings = RemapedAmountOfReadings;  // Set amount of readings as the remaped value.
-  }
-  else
-  {
-    PulseCounter++;  // Increase the counter for amount of readings by 1.
-    PeriodSum = PeriodSum + PeriodBetweenPulses;  // Add the periods so later we can average.
-  }
-}  // End of Pulse_Event.
 
 void loop() 
 { 
   if(!digitalRead(ignPin))
   {
-  odoDS = odo;
-  odocDS = odoc;
-  t1DS = lastTrip1;
-  t2DS = lastTrip2;
-  esp_deep_sleep_start();
+    odoDS = odo;
+    odocDS = odoc;
+    t1DS = lastTrip1;
+    t2DS = lastTrip2;
+    esp_deep_sleep_start();
   }
   attachInterrupt(digitalPinToInterrupt(pin_sensor), readPulses, RISING);    //reattaches interrupt  
+  
  //----------------- ODOMETER UPDATE -----------------------//
  if(millis()-tempo>=1000)                                       //check if 1 second has passe
  {
@@ -120,15 +100,13 @@ void loop()
  }  
 
  //----------------- DATA ACQUISITION ----------------------//
- spd = int(getRpm()*kmConv);       //get speed value
- 
-   if(getOilTemp() - oilT > 1 || getOilTemp() - oilT < 1)   //if oiltemp has changed more than half degree celsius
-    {  oilT = getOilTemp(); }      //get new temperature value
- 
-   if(getFuelQt() - fuelqty > 2 || getFuelQt() - fuelqty < 2)   //if fuelquantity has changed more than 2% 
-    { fuelqty = getFuelQt();}     //get new percentage value
+    spd = int(getRpm()*kmConv);    //get speed value
 
-   batStats = getBatVolt();        //gets the battery voltage
+    oilT = getOilTemp();           //get new temperature value
+ 
+    fuelqty = getFuelQt();         //get new percentage value
+ 
+    batStats = getBatVolt();       //gets the battery voltage
 
  //------------------ DATA FORMATTING ---------------------//
  odot = odoT;                 //since sprintf in arduino IDE
@@ -158,7 +136,7 @@ void handleEvent(AceButton* /* button */, uint8_t eventType,
     uint8_t /* buttonState */) {
   switch (eventType) {
     case AceButton::kEventClicked:
-      if(telaAtiva==0 && modo<=1)modo++;else modo=0;
+      if(telaAtiva==0 && modo<=1)modo++; else modo=0;
       if(telaAtiva==1){telaAtiva=0;modo=0;}
       break;
     case AceButton::kEventLongPressed:
