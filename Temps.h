@@ -16,10 +16,10 @@ float TempC=0.0;   // variable output
 
 
 float getOilTemp(){
-  
+
   beta=(log(RT1/RT2))/((1/t1)-(1/t2));
   Rinf=R0*exp(-beta/t0);
-
+  
   Vout=Vin*((float)(analogRead(TempSensorPin))/4096.0); // calc for ntc
   Rout=(Rt*Vout/(Vin-Vout));
 
