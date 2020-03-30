@@ -1,8 +1,14 @@
 #define wheelDiameter 65          //unit: cm
 #define pin_sensor 19             //pin where the wheel sensor is attached
 #define sw_pin 13                 //pin where the control switch is attached
-#define FuelSensorPin 37
-#define TempSensorPin 36
+#define FuelSensorPin 34
+#define TempSensorPin 35
+#define batSensorPin 36
+#define ignPin 39
+#define maxOilT 145               //defines the max oil temperature
+#define minBatVolt 10
+
+
 #include <AceButton.h>            //button library
 #include <U8g2lib.h>              //u8g2 Library
 #include "Speedo.h"               //file which contains the rpm and speed functions (by interlinkknight)
@@ -10,37 +16,59 @@
 #include "Fuel.h"                 //file which contains the fuel sensing function
 #include "Temps.h"                //file which contains the temp sensing function
 #include "EEPROM.h"
-#define maxOilT 145               //defines the max oil temperature
-using namespace ace_button;       
+#include "Battery.h"
 
+using namespace ace_button;       
 float kmConv = wheelDiameter * 0.001885;  //determines the constant value for converting rpm to km/h
 int spd,modo=0,telaAtiva=0;               //variables: speed, screen mode, and active screen
 double odoT=0,odot;                       //variables to store odometers value
-float oilT=0;                             //variable to store the oil temp
+float oilT=0, batStats;                   //variable to store the oil temp and bat voltage
 uint32_t tempo;                           //time variable
 unsigned int odo, odoc, trip1=0;          //variables to store odometers and trip values
 unsigned int trip2=0, fuelqty=0;          //variables to store trip and fuel quantity values
 unsigned int lastTrip1,lastTrip2;         //variables to set trip values
 char buf[32];                             //general use buffer
-bool mainDrawn,firstRun=1;                //bool variable to set some things at first run
+bool mainDrawn;
+RTC_DATA_ATTR bool firstRun=1;                //bool variable to set some things at first run
+RTC_DATA_ATTR int odoDS = 0;
+RTC_DATA_ATTR int odocDS = 0;
+RTC_DATA_ATTR int t1DS = 0;
+RTC_DATA_ATTR int t2DS = 0;
 
 AceButton modeSw(sw_pin);
 void handleEvent(AceButton*, uint8_t, uint8_t);
 
+
 void setup() 
 { 
-  EEPROM.begin(1000);
-  delay(1000);
-  Serial.begin(115200);
-  odoT = (double)EEPROM.readDouble(0);
-  trip1 = (int)EEPROM.readInt(8);
-  trip2 = (int)EEPROM.readInt(12);
   u8g2.begin();
+  draw_splash();
+  EEPROM.begin(1000);
+  if(odoDS!=0)
+  {
+  odo = odoDS;
+  odot = odocDS;
+  lastTrip1 = t1DS;
+  lastTrip2 = t2DS;
+  EEPROM.writeInt(0,odo);
+  EEPROM.writeInt(5,odoc);
+  EEPROM.writeInt(9,lastTrip1);
+  EEPROM.writeInt(13,lastTrip2);
+  EEPROM.commit();
+  }else{
+    odo=EEPROM.readInt(0);
+    odoc=EEPROM.readInt(5);
+    lastTrip1=EEPROM.readInt(9);
+    lastTrip2=EEPROM.readInt(13);
+  }
+  minCal = EEPROM.readInt(20);
+  maxCal = EEPROM.readInt(25);
+  odoT = odo+(odot/10);
+  esp_sleep_enable_ext0_wakeup(GPIO_NUM_39, 1);
   pinMode(sw_pin,INPUT_PULLUP);
   pinMode(pin_sensor,INPUT_PULLUP);
   modeSw.setEventHandler(handleEvent);
-  attachInterrupt(digitalPinToInterrupt(pin_sensor), readPulses, RISING); //Counter restarted  
-  delay(1000);
+  //attachInterrupt(digitalPinToInterrupt(pin_sensor), readPulses, RISING); //Counter restarted  
   ButtonConfig* buttonConfig = modeSw.getButtonConfig();
   buttonConfig->setEventHandler(handleEvent);
   buttonConfig->setFeature(ButtonConfig::kFeatureClick);
@@ -50,7 +78,8 @@ void setup()
  lastTrip2=trip2;
  firstRun=0;
  }
-}
+ delay(5000);
+}//setup
 
 void readPulses()  // The interrupt runs this to calculate the period between pulses:
 {
@@ -74,6 +103,15 @@ void readPulses()  // The interrupt runs this to calculate the period between pu
 
 void loop() 
 { 
+  if(!digitalRead(ignPin))
+  {
+  odoDS = odo;
+  odocDS = odoc;
+  t1DS = lastTrip1;
+  t2DS = lastTrip2;
+  esp_deep_sleep_start();
+  }
+  attachInterrupt(digitalPinToInterrupt(pin_sensor), readPulses, RISING);    //reattaches interrupt  
  //----------------- ODOMETER UPDATE -----------------------//
  if(millis()-tempo>=1000)                                       //check if 1 second has passe
  {
@@ -88,7 +126,9 @@ void loop()
     {  oilT = getOilTemp(); }      //get new temperature value
  
    if(getFuelQt() - fuelqty > 2 || getFuelQt() - fuelqty < 2)   //if fuelquantity has changed more than 2% 
-    { fuelqty = getFuelQt(); }     //get new percentage value
+    { fuelqty = getFuelQt();}     //get new percentage value
+
+   batStats = getBatVolt();        //gets the battery voltage
 
  //------------------ DATA FORMATTING ---------------------//
  odot = odoT;                 //since sprintf in arduino IDE
@@ -104,14 +144,14 @@ void loop()
  
  detachInterrupt(0);                                      //detach interrupt while drawing on screen
  
-   if(telaAtiva==0 && oilT<=maxOilT)                      //if in main screen and oilT below maximum
-     { drawMain(spd,odo,odoc,trip1,trip2,modo,fuelqty);}  //draw main screen
-   if(telaAtiva==1 || oilT>maxOilT)                       //if in temp screen OR oilT gets above maximum
-     { drawTemp(oilT); }                                  //draw temps screen
+   if(telaAtiva==0 && oilT<=maxOilT && batStats >= minBatVolt)                      //if in main screen and oilT below maximum
+     { drawMain(spd,odo,odoc,trip1,trip2,modo,fuelqty); }                           //draw main screen
+   if(telaAtiva==1 || oilT>maxOilT || batStats < minBatVolt)                       //if in temp screen OR oilT gets above maximum
+     { drawStats(oilT, batStats);}                                                 //draw temps screen
 
- attachInterrupt(digitalPinToInterrupt(pin_sensor), readPulses, RISING);    //reattaches interrupt
-    
-}
+} //loop
+
+
 
 //---------- control button routine -------------//
 void handleEvent(AceButton* /* button */, uint8_t eventType,

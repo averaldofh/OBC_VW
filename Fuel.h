@@ -1,9 +1,20 @@
 uint32_t fuelqtt;
+uint8_t lastfuel;
+int minCal, maxCal;
 
 int getFuelQt(){
+  
   for(int i = 0 ; i < 50 ; i++)
   { fuelqtt += analogRead(FuelSensorPin); }
   fuelqtt = fuelqtt/50;
-  fuelqtt = map(fuelqtt,0,4096,0,100);
- return fuelqtt;
+  
+ if(lastfuel-fuelqtt>100 || fuelqtt-lastfuel>100)
+ {
+    lastfuel = fuelqtt;
+    fuelqtt = map(fuelqtt,minCal-10,maxCal+10,0,100);
+    return fuelqtt;
+ }
+ else {
+   return lastfuel;
+  }
 }

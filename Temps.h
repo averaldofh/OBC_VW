@@ -1,5 +1,5 @@
 float Vin=4.9;     // [V]        
-float Rt=92000;    // Resistor t [ohm]
+float Rt=112000;    // Resistor t [ohm]
 float R0=100000;    // value of rct in T0 [ohm]
 float t0=298.15;   // use T0 in Kelvin [K]
 double Vout=0.0;    // Vout in A0 
