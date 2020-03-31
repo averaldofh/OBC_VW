@@ -20,6 +20,11 @@ It's going to simply show the speed, odometer, 2 parcial odometers, oil temperat
 
 
 # this sketch for testing purposes, is runing ok on a ESP32 with built-in OLED screen. still under development.
+![SPLASH_SCREEN](https://raw.githubusercontent.com/averaldofh/OBC_VW/master/images/OLED_Splash.png)
+![MAIN_SCREEN](https://raw.githubusercontent.com/averaldofh/OBC_VW/master/images/OLED_Main.png)
+![STATS_SCREEN](https://raw.githubusercontent.com/averaldofh/OBC_VW/master/images/OLED_StatsOK.png)
+![STATS_SCREENOIL](https://raw.githubusercontent.com/averaldofh/OBC_VW/master/images/OLED_StatsOIL.png)
+![STATS_SCREENBAT](https://raw.githubusercontent.com/averaldofh/OBC_VW/master/images/OLED_StatsBAT.png)
 
 # Special Thanks
 **Thanks to youtube.com/user/interlinkknight for his awesome piece of code, regarding RPM counting.**
