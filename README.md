@@ -12,9 +12,9 @@ It's going to simply show the speed, odometer, 2 parcial odometers, oil temperat
 
 **Odometer:** With speed and time we can sum our mileage very easily and store in non-volatile memory.
 
-**Oil Temperature:** Still figuring out how i will attach an NTC to monitor oil temperature. But the NTC uses a Steinhart-Hart equation.
+**Oil Temperature:** Still figuring out how i will attach an NTC to monitor oil temperature, probably at the oil cooler. But the NTC uses a Steinhart-Hart equation.
 
-**Fuel level:** Just as simple as a potentiometer and a buoy.
+**Fuel level:** I used a scraped aircraft fuel sensor, which works between aprox 20 and 50 ohms.
 
 **Battery Level:** Simplest thing on the whole project.
 
