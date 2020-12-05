@@ -3,8 +3,8 @@
 
 ## What's this?
 It is just an atempt to get an on-board computer in an '69 VW Beetle.
-
-## What this thing do? (or should..)
+schematics: https://easyeda.com/averaldofh/obc-vw
+## What this thing will do? (or should..)
 It's going to simply show the speed, odometer, 2 parcial odometers, oil temperature, battery voltage and fuel level.
 
 ## How it works?
