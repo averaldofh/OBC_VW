@@ -3,11 +3,11 @@
 //https://www.thinksrs.com/downloads/programs/therm%20calc/ntccalibrator/ntccalculator.html
 // steinhart-hart
 //
-//A29 sensor to 3.3, 22ohm to gnd voltage divider
+//aircraft sensor to 3v3, 22ohm to gnd voltage divider
 //full tank gives aroun 40ohm, empty around 5
 //giving us voltage values that range from 2.7V(empty) and 1V (full)
 float batVolt;
-float rb1 = 56.00/*56k*/, rb2 = 10.00/*10k*/;
+float rb1 = 47.0/*56k*/, rb2 = 8.5/*10k*/;
 uint32_t fuelqtt;
 int minCal, maxCal;
 double shA = 0.0006739775689;
@@ -16,6 +16,7 @@ double shC = 0.0000000943151063;
 float Vout, TempC,Rout;
 float Rt = 100000;
 int rawADC;
+bool minfof,maxfof;
 
 float getOilTemp(){
   rawADC=0;
@@ -31,14 +32,15 @@ float getOilTemp(){
 return TempC;
 }
 
-int getFuelQt(){
+int getFuelQt(bool a){
   
   for(int i = 0 ; i < 1000 ; i++)
   { fuelqtt += analogRead(FuelSensorPin); }
   fuelqtt = fuelqtt/1000;
-  if(fuelqtt>minCal)fuelqtt=minCal;else if(fuelqtt<maxCal)fuelqtt=maxCal;
+  if(a){return fuelqtt;}else{
+  if(fuelqtt>minCal){fuelqtt=minCal;minfof=1;}else if(fuelqtt<maxCal){fuelqtt=maxCal;maxfof=1;}
   fuelqtt = map(fuelqtt,minCal,maxCal,0,100);
-  return fuelqtt;
+  return fuelqtt;}
 }
 
 float getBatVolt()
@@ -51,7 +53,7 @@ float getBatVolt()
   return batVolt;
 }
 
-void getLiters(){
-  int fL = map(getFuelQt(),0,100,0,40);
-  menuEstLiters.setCurrentValue(fL,1);
+int getLiters(){
+  int fL = map(getFuelQt(0),0,100,0,40);
+  return fL;
 }
