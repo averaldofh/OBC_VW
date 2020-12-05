@@ -1,5 +1,5 @@
 PROGMEM const byte PulsesPerRevolution = 4;  // Set how many pulses there are on each revolution. Default: 2.
-PROGMEM const unsigned long ZeroTimeout = 350000;  // For high response time, a good value would be 100000.
+PROGMEM const unsigned long ZeroTimeout = 900000;  // For high response time, a good value would be 100000.
 PROGMEM const byte numReadings = 2;
 volatile unsigned long LastTimeWeMeasured;  // Stores the last time we measured a pulse so we can calculate the period.
 volatile unsigned long PeriodBetweenPulses = ZeroTimeout+1000; 
@@ -9,7 +9,7 @@ unsigned long RPM;  // Raw RPM without any processing.
 unsigned int PulseCounter = 1;
 unsigned long LastTimeCycleMeasure = LastTimeWeMeasured;
 unsigned long CurrentMicros = micros();
-unsigned int AmountOfReadings = 5;
+unsigned int AmountOfReadings = 2;
 unsigned int ZeroDebouncingExtra;
 unsigned long PeriodSum;
 //
@@ -37,7 +37,7 @@ void readPulses()  // The interrupt runs this to calculate the period between pu
 
 
 
-int getRpm() 
+void getRpm() 
 {
   LastTimeCycleMeasure = LastTimeWeMeasured;  // Store the LastTimeWeMeasured in a variable.
   CurrentMicros = micros();  // Store the micros() in a variable.
@@ -59,7 +59,6 @@ int getRpm()
   RPM = FrequencyRaw / PulsesPerRevolution * 60;  // Frequency divided by amount of pulses per revolution multiply by
                                                   // 60 seconds to get minutes.
   RPM = RPM / 10000;  // Remove the decimals.
-  return RPM;
 }
 //
 //void readPulses()  // The interrupt runs this to calculate the period between pulses:
